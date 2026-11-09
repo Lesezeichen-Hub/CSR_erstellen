@@ -1,0 +1,20 @@
+:root { color-scheme: dark; --bg: #0a1018; --bg-alt: #101a27; --ink: #e8eef7; --muted: #97a7bf; --line: #364453; --accent: #2cb7a1; --danger: #ed8b91; }
+* { box-sizing: border-box; }
+body { margin: 0; min-height: 100vh; color: var(--ink); background: linear-gradient(140deg, var(--bg), var(--bg-alt)); font-family: "Space Grotesk", "Avenir Next", "Segoe UI", sans-serif; }
+.topbar { display: flex; justify-content: space-between; align-items: center; gap: 20px; padding: 28px 32px 16px; }
+h1 { margin: 0; font-size: 30px; letter-spacing: 0; }
+h2 { margin: 0; font-size: 18px; letter-spacing: 0; }
+.eyebrow { margin: 0 0 8px; color: var(--accent); font-size: 12px; text-transform: uppercase; }
+.app-nav { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 32px; }
+a { color: #464feb; text-decoration: none; }
+.app-nav a { color: var(--muted); padding: 9px 12px; border: 1px solid var(--line); border-radius: 6px; }
+.app-nav a[aria-current] { color: var(--accent); border-color: var(--accent); }
+button, input, select { font: inherit; border: 1px solid var(--line); border-radius: 6px; }
+input, select { background: var(--bg); color: var(--ink); width: 100%; min-width: 0; padding: 11px 12px; }
+button { cursor: pointer; background: var(--accent); color: #061c17; padding: 10px 14px; min-height: 42px; }
+button.ghost { background: transparent; color: var(--ink); }
+button:disabled { opacity: .6; cursor: wait; }
+button:hover { filter: brightness(1.12); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+:root[data-theme="terminal"] { --bg: #000; --bg-alt: #080808; --ink: #ededed; --muted: #aaa; --line: #494949; --accent: #e8e8e8; }
+:root[data-theme="terminal"] body { font-family: "Cascadia Mono", "Consolas", monospace; background: repeating-linear-gradient(0deg, #ffffff05 0, #ffffff05 1px, transparent 1px, transparent 4px), #050505; }

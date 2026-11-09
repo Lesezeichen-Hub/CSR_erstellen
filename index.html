@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>CSR Generator | Lesezeichen-Hub</title>
+  <link rel="stylesheet" href="styles.css">
+  <link id="csr-styles" rel="stylesheet" href="csr.css">
+  <script src="app.js" type="module"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div><p class="eyebrow">Telekom-CA</p><h1>CSR Generator</h1></div>
+    <div class="header-actions"><span id="crypto-status" role="status">Browser-Kryptografie</span><button id="theme" class="ghost icon-button" type="button" title="Farbschema wechseln" aria-label="Farbschema wechseln">◐</button></div>
+  </header>
+  <main class="csr-main">
+    <form id="generator" autocomplete="off">
+      <div class="form-heading"><h2>Zertifikatsanfrage</h2><span class="badge">RSA / SHA-256</span></div>
+      <div class="field-grid">
+        <label>Stage<select id="stage" name="stage"><option>LIVE</option><option>LABOR</option></select></label>
+        <label>RSA-Key-Laenge<select id="bits" name="bits"><option value="2048">2048 Bit</option><option value="3072">3072 Bit</option><option value="4096" selected>4096 Bit</option></select></label>
+      </div>
+      <label>Common Name (CN)<input id="cn" name="cn" required maxlength="253" spellcheck="false" autocapitalize="none"></label>
+      <fieldset><legend>Alternative DNS-Namen (SAN)</legend><div id="sans"></div><button id="add-san" class="ghost" type="button"><span aria-hidden="true">＋</span> DNS-Name</button></fieldset>
+      <div class="form-actions"><button id="generate" type="submit"><span id="spinner" class="spinner" hidden aria-hidden="true"></span><span id="generate-label">Schluessel &amp; CSR erstellen</span></button><button id="clear" class="ghost" type="button">Ausgaben verwerfen</button></div>
+    </form>
+    <div id="error" class="error" role="alert" hidden></div>
+    <div id="feedback" class="feedback" role="status" aria-live="polite"></div>
+    <div id="results" hidden>
+      <section class="artifact" aria-labelledby="key-title"><div class="artifact-heading"><h2 id="key-title">Private Key</h2><span class="sensitive">Vertraulich</span><div class="artifact-actions"><button type="button" data-action="copy" data-artifact="key" title="Private Key kopieren"><span aria-hidden="true">⧉</span> Kopieren</button><button type="button" data-action="download" data-artifact="key" title="Private Key herunterladen"><span aria-hidden="true">↓</span> Download</button></div></div><textarea id="key-output" class="pem-output" readonly spellcheck="false" wrap="off" rows="12" aria-label="Privater RSA-Schluessel"></textarea></section>
+      <section class="artifact" aria-labelledby="csr-title"><div class="artifact-heading"><h2 id="csr-title">Certificate Signing Request</h2><div class="artifact-actions"><button type="button" data-action="copy" data-artifact="csr" title="CSR kopieren"><span aria-hidden="true">⧉</span> Kopieren</button><button type="button" data-action="download" data-artifact="csr" title="CSR herunterladen"><span aria-hidden="true">↓</span> Download</button></div></div><textarea id="csr-output" class="pem-output" readonly spellcheck="false" wrap="off" rows="10" aria-label="Certificate Signing Request"></textarea></section>
+      <section class="artifact" aria-labelledby="config-title"><div class="artifact-heading"><h2 id="config-title">csr.conf</h2><div class="artifact-actions"><button type="button" data-action="copy" data-artifact="config" title="Konfiguration kopieren"><span aria-hidden="true">⧉</span> Kopieren</button><button type="button" data-action="download" data-artifact="config" title="csr.conf herunterladen"><span aria-hidden="true">↓</span> Download</button></div></div><pre id="config-output" tabindex="0" aria-label="CSR-Konfiguration"></pre></section>
+    </div>
+  </main>
+</body>
+</html>

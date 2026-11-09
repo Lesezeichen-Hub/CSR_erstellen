@@ -1,0 +1,19 @@
+{
+  "name": "csr-generator",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "esbuild crypto.js --bundle --format=esm --outfile=crypto.bundle.js --legal-comments=linked --servedir=. --serve=127.0.0.1:18780",
+    "build": "esbuild crypto.js --bundle --format=esm --outfile=crypto.bundle.js --legal-comments=linked",
+    "test": "node --test crypto.test.js",
+    "check": "node --check app.js && node --check crypto.js"
+  },
+  "dependencies": {
+    "asn1js": "^4.0.0",
+    "pkijs": "^4.0.1"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  }
+}

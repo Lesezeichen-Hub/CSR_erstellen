@@ -1,0 +1,5 @@
+{
+  "version": "1.0.0",
+  "name": "CSR Generator",
+  "description": "Browser-Webapp fuer RSA-Schluessel und Telekom-CA-CSRs fuer LIVE und LABOR"
+}
