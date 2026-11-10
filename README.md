@@ -12,7 +12,7 @@ Kein eigener Server, keine EXE, kein Go und kein OpenSSL erforderlich.
 
 Die benoetigten Browserdateien einschliesslich `crypto.bundle.js` und dessen
 Lizenzhinweisen liegen bereits im Repository. Fuer den Betrieb ist kein npm
-notwendig. Die `version.json` enthaelt das Hub-Versionsfeld `version: 1.0.0`.
+notwendig. Die `version.json` enthaelt das Hub-Versionsfeld `version: 1.1.0`.
 Der Hub bekommt einen Modul-Eintrag, keinen zusaetzlichen globalen Navigationspunkt.
 Hub-Styles und das Farbschema modern/terminal werden uebernommen.
 
@@ -26,6 +26,14 @@ Stage und RSA-Laenge (2048, 3072 oder standardmaessig 4096 Bit) auswaehlen,
 bei Bedarf CN und alternative DNS-Namen bearbeiten und **Schluessel & CSR erstellen**
 ausfuehren. Private Key, CSR und `csr.conf` werden angezeigt und lassen sich
 einzeln kopieren oder herunterladen.
+
+Direkt unter dem CSR zeigt ein schreibgeschuetztes Textfeld die CSR-Pruefung:
+Signaturstatus, Subject, RSA-Public-Key, angeforderte Extensions und Signatur.
+Der PEM-kodierte CSR wird dafuer erneut eingelesen und seine Signatur mit
+PKIjs/Web Crypto geprueft. Die Ausgabe entspricht inhaltlich fuer die erzeugten
+CSRs `openssl req -noout -text -verify`, verwendet aber ein OpenSSL-aehnliches
+Format und fuehrt kein OpenSSL aus. Sie bestaetigt die CSR-Selbstsignatur,
+nicht die Freigabe durch eine CA oder die Zulaessigkeit der DNS-Namen.
 
 Es gibt keine Verlinkung zurueck zum Hub. Die Downloadnamen folgen dem Schema
 `BNET2_<Stage>_<Monat>_<Jahr>.key` beziehungsweise `.csr`, z.B.
@@ -105,4 +113,5 @@ Lizenzhinweise neben dem Bundle behalten.
 
 Die Tests pruefen LIVE und LABOR, neue Schluessel, alle drei RSA-Laengen,
 CSR-Signatur, passende oeffentliche/private Schluessel, CN, beide OU-Werte,
-SANs, Key Usage, Extended Key Usage und Eingabevalidierung.
+SANs, Key Usage, Extended Key Usage und Eingabevalidierung. Der Pruefbericht
+wird ebenfalls geprueft, einschliesslich der Erkennung manipulierter Signaturen.

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { createPrivateKey, createPublicKey } from "node:crypto";
 import * as asn1js from "asn1js";
 import { CertificationRequest, Extensions, ExtKeyUsage, GeneralNames } from "pkijs";
-import { configuration, generateArtifacts, presets } from "./crypto.js";
+import { configuration, generateArtifacts, inspectCSR, presets } from "./crypto.js";
 
 function input(stage = "LIVE", bits = 2048) {
   return { stage, bits, cn: presets[stage][0], sans: [...presets[stage]] };
@@ -26,6 +26,14 @@ test("LIVE/LABOR: neue Schluessel, korrekte Signatur, SAN, Subject und Extension
     assert.equal(key.asymmetricKeyDetails.modulusLength, bits);
     const csr = parseCSR(result.csr);
     assert.equal(await csr.verify(), true);
+    assert.ok(result.verification.includes("Certificate request self-signature verify OK"));
+    assert.ok(result.verification.includes(`Public-Key: (${bits} bit)`));
+    assert.ok(result.verification.includes(`Subject: C = DE, O = T-Systems International GmbH, OU = Barmer Infrastruktur, OU = Serverdienste, CN = ${request.cn}`));
+    assert.ok(result.verification.includes("Exponent: 65537 (0x10001)"));
+    assert.ok(result.verification.includes("X509v3 Key Usage: critical\n                    Digital Signature, Key Encipherment"));
+    assert.ok(result.verification.includes("TLS Web Server Authentication, TLS Web Client Authentication"));
+    assert.ok(result.verification.includes(request.sans.map((name) => `DNS:${name}`).join(", ")));
+    assert.ok(result.verification.includes("Signature Algorithm: sha256WithRSAEncryption"));
     assert.equal(csr.signatureAlgorithm.algorithmId, "1.2.840.113549.1.1.11");
     const expectedPublic = createPublicKey(key).export({ type: "spki", format: "der" });
     assert.deepEqual(Buffer.from(csr.subjectPublicKeyInfo.toSchema().toBER(false)), expectedPublic);
@@ -50,6 +58,17 @@ test("LIVE/LABOR: neue Schluessel, korrekte Signatur, SAN, Subject und Extension
     request.sans.forEach((name, index) => assert.ok(result.config.includes(`DNS.${index + 1} = ${name}\n`)));
     assert.ok(result.config.includes(`default_bits       = ${bits}`));
   }
+});
+
+test("CSR-Pruefung erkennt manipulierte Signaturen und ungueltige CSR-Daten", async () => {
+  const result = await generateArtifacts(input());
+  const csr = parseCSR(result.csr);
+  csr.signatureValue.valueBlock.valueHexView[0] ^= 1;
+  const body = Buffer.from(csr.toSchema().toBER(false)).toString("base64");
+  const report = await inspectCSR(`-----BEGIN CERTIFICATE REQUEST-----\n${body}\n-----END CERTIFICATE REQUEST-----`);
+  assert.ok(report.includes("Certificate request self-signature verify FAILURE"));
+  assert.ok(!report.includes("verify OK"));
+  await assert.rejects(() => inspectCSR("ungueltig"));
 });
 
 test("CN, SAN, Stage und RSA-Laenge werden validiert", () => {

@@ -20836,6 +20836,70 @@ ${body}
 -----END ${type}-----
 `;
 }
+async function inspectCSR(pem) {
+  const body = pem.replace("-----BEGIN CERTIFICATE REQUEST-----", "").replace("-----END CERTIFICATE REQUEST-----", "").replace(/\s/g, "");
+  const bytes = Uint8Array.from(atob(body), (character) => character.charCodeAt(0));
+  const schema = fromBER(bytes.buffer);
+  if (schema.offset === -1 || schema.offset !== bytes.length) throw new Error("Der CSR konnte nicht gelesen werden.");
+  const request = new CertificationRequest({ schema: schema.result });
+  const verified = await request.verify();
+  const subjectNames = { "2.5.4.6": "C", "2.5.4.10": "O", "2.5.4.11": "OU", "2.5.4.3": "CN" };
+  const subject = request.subject.typesAndValues.map((part) => `${subjectNames[part.type] || part.type} = ${part.value.valueBlock.value}`).join(", ");
+  const publicKey = fromBER(request.subjectPublicKeyInfo.subjectPublicKey.valueBlock.valueHexView).result;
+  const [modulusValue, exponentValue] = publicKey.valueBlock.value;
+  const encodedModulus = modulusValue.valueBlock.valueHexView;
+  const modulus = encodedModulus[0] === 0 ? encodedModulus.subarray(1) : encodedModulus;
+  const bits = (modulus.length - 1) * 8 + Math.floor(Math.log2(modulus[0])) + 1;
+  const exponent = exponentValue.valueBlock.valueHexView.reduce((value, byte) => value * 256 + byte, 0);
+  const hexLines = (value, indent) => {
+    const hex2 = Array.from(value, (byte) => byte.toString(16).padStart(2, "0"));
+    const lines2 = [];
+    for (let offset = 0; offset < hex2.length; offset += 15) lines2.push(`${indent}${hex2.slice(offset, offset + 15).join(":")}`);
+    return lines2.join("\n");
+  };
+  const lines = [
+    "Pruefung lokal im Browser (PKIjs/Web Crypto; OpenSSL-aehnliches Format)",
+    verified ? "Certificate request self-signature verify OK" : "Certificate request self-signature verify FAILURE",
+    "Certificate Request:",
+    "    Data:",
+    `        Version: ${request.version + 1} (0x${request.version.toString(16)})`,
+    `        Subject: ${subject}`,
+    "        Subject Public Key Info:",
+    `            Public Key Algorithm: ${request.subjectPublicKeyInfo.algorithm.algorithmId === "1.2.840.113549.1.1.1" ? "rsaEncryption" : request.subjectPublicKeyInfo.algorithm.algorithmId}`,
+    `                Public-Key: (${bits} bit)`,
+    "                Modulus:",
+    hexLines(encodedModulus, "                    "),
+    `                Exponent: ${exponent} (0x${exponent.toString(16)})`,
+    "        Attributes:",
+    "            Requested Extensions:"
+  ];
+  for (const attribute of request.attributes || []) {
+    if (attribute.type !== "1.2.840.113549.1.9.14") continue;
+    for (const extension of new Extensions({ schema: attribute.values[0] }).extensions) {
+      const value = fromBER(extension.extnValue.valueBlock.valueHexView).result;
+      const critical = extension.critical ? " critical" : "";
+      if (extension.extnID === "2.5.29.15") {
+        const usageNames = ["Digital Signature", "Non Repudiation", "Key Encipherment", "Data Encipherment", "Key Agreement", "Certificate Sign", "CRL Sign", "Encipher Only", "Decipher Only"];
+        const usages = usageNames.filter((name, index) => value.valueBlock.valueHexView[Math.floor(index / 8)] & 128 >> index % 8);
+        lines.push(`                X509v3 Key Usage:${critical}`, `                    ${usages.join(", ")}`);
+      } else if (extension.extnID === "2.5.29.37") {
+        const purposes = { "1.3.6.1.5.5.7.3.1": "TLS Web Server Authentication", "1.3.6.1.5.5.7.3.2": "TLS Web Client Authentication" };
+        const usages = new ExtKeyUsage({ schema: value }).keyPurposes.map((purpose) => purposes[purpose] || purpose);
+        lines.push(`                X509v3 Extended Key Usage:${critical}`, `                    ${usages.join(", ")}`);
+      } else if (extension.extnID === "2.5.29.17") {
+        const names = new GeneralNames({ schema: value }).names.map((name) => `${name.type === 2 ? "DNS" : `GeneralName[${name.type}]`}:${name.value}`);
+        lines.push(`                X509v3 Subject Alternative Name:${critical}`, `                    ${names.join(", ")}`);
+      }
+    }
+  }
+  lines.push(
+    `    Signature Algorithm: ${request.signatureAlgorithm.algorithmId === "1.2.840.113549.1.1.11" ? "sha256WithRSAEncryption" : request.signatureAlgorithm.algorithmId}`,
+    "    Signature Value:",
+    hexLines(request.signatureValue.valueBlock.valueHexView, "        ")
+  );
+  return `${lines.join("\n")}
+`;
+}
 async function generateArtifacts(input) {
   const config = configuration(input);
   if (!globalThis.crypto?.subtle) throw new Error("Browser-Kryptografie ist nicht verfuegbar. Bitte den Hub ueber localhost, 127.0.0.1 oder HTTPS oeffnen.");
@@ -20864,9 +20928,11 @@ async function generateArtifacts(input) {
     attributes: [new Attribute({ type: "1.2.840.113549.1.9.14", values: [new Extensions({ extensions }).toSchema()] })]
   });
   await csr.sign(pair.privateKey, "SHA-256");
+  const csrPEM = encodePEM("CERTIFICATE REQUEST", csr.toSchema().toBER(false));
+  const verification = await inspectCSR(csrPEM);
   const privateDER = await nativeCrypto.subtle.exportKey("pkcs8", pair.privateKey);
   try {
-    return { config, key: encodePEM("PRIVATE KEY", privateDER), csr: encodePEM("CERTIFICATE REQUEST", csr.toSchema().toBER(false)) };
+    return { config, key: encodePEM("PRIVATE KEY", privateDER), csr: csrPEM, verification };
   } finally {
     new Uint8Array(privateDER).fill(0);
   }
@@ -20874,6 +20940,7 @@ async function generateArtifacts(input) {
 export {
   configuration,
   generateArtifacts,
+  inspectCSR,
   presets,
   validDNS
 };

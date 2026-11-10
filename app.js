@@ -40,6 +40,7 @@ import { generateArtifacts, presets, validDNS } from "./crypto.bundle.js";
     artifacts = null;
     byId("key-output").value = "";
     byId("csr-output").value = "";
+    byId("verification-output").value = "";
     byId("config-output").replaceChildren();
     byId("results").hidden = true;
   }
@@ -118,6 +119,7 @@ import { generateArtifacts, presets, validDNS } from "./crypto.bundle.js";
       }
       byId("key-output").value = result.key;
       byId("csr-output").value = result.csr;
+      byId("verification-output").value = result.verification;
       highlightConfig(result.config);
       byId("results").hidden = false;
       announce("Neuer Schluessel und CSR wurden erstellt.");
